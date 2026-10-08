@@ -5,6 +5,8 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 $routes->setAutoRoute(false);
 
+$routes->get('setup', 'SetupController::index');
+$routes->post('setup', 'SetupController::create');
 $routes->get('login', 'AuthController::login');
 $routes->post('login', 'AuthController::login');
 $routes->post('logout', 'AuthController::logout', ['filter' => 'adminauth']);

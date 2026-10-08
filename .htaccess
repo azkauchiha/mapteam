@@ -12,6 +12,6 @@ DirectoryIndex index.php
     RewriteRule ^ index.php/$0 [L,QSA]
 </IfModule>
 
-<FilesMatch "^(\.env|composer\.(json|lock)|spark)$">
+<FilesMatch "^(\.env(\..*)?|composer\.(json|lock)|spark|\.ftp-deploy-sync-state\.json)$">
     Require all denied
 </FilesMatch>

@@ -32,6 +32,7 @@ $loginError = isset($error) && is_string($error) ? $error : null;
         <input id="password" name="password" type="password" autocomplete="current-password" required>
         <button type="submit">Masuk</button>
     </form>
+    <p><a href="<?= site_url('setup') ?>">Pengaturan administrator pertama</a></p>
 </main>
 </body>
 </html>

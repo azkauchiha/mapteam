@@ -1,0 +1,87 @@
+name: Deploy CodeIgniter to InfinityFree
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infinityfree-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Validate dependencies and run tests
+        run: |
+          composer validate --strict
+          composer install --prefer-dist --no-interaction
+          vendor/bin/phpunit --no-coverage
+
+      - name: Prepare production files
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          release_dir="$RUNNER_TEMP/webgis-release"
+          mkdir -p "$release_dir/data" "$release_dir/writable"
+          cp -a app layers resources styles webfonts vendor index.php .htaccess "$release_dir/"
+          cp -a data/.gitkeep "$release_dir/data/"
+          cp -a writable/.htaccess "$release_dir/writable/"
+          for directory in cache debugbar logs session uploads map_uploads; do
+            mkdir -p "$release_dir/writable/$directory"
+            touch "$release_dir/writable/$directory/.gitkeep"
+          done
+          echo "release_dir=$release_dir" >> "$GITHUB_ENV"
+
+      - name: Check FTP secrets
+        id: ftp-secrets
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [[ -n "$FTP_USERNAME" && -n "$FTP_PASSWORD" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Build and tests passed, but deployment was skipped. Add FTP_USERNAME and FTP_PASSWORD in repository Actions secrets, then rerun this workflow."
+          fi
+
+      - name: Upload to InfinityFree
+        if: ${{ steps.ftp-secrets.outputs.ready == 'true' }}
+        uses: SamKirkland/FTP-Deploy-Action@a51268f67f6605236975928ae28b0f7e9971d50a
+        with:
+          server: ftpupload.net
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          protocol: ftp
+          local-dir: ${{ env.release_dir }}/
+          server-dir: /htdocs/
+          dangerous-clean-slate: false
+          log-level: minimal
+          exclude: |
+            **/.env
+            **/.env.*
+            writable/webgis.sqlite
+            writable/map_uploads/**
+            writable/map_uploads/*.xlsx
+            writable/map_uploads/*.csv
+            data/*.xlsx
+            data/*.xls
+            data/*.csv
+            data/**/*.xlsx
+            data/**/*.xls
+            data/**/*.csv

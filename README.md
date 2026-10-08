@@ -58,9 +58,51 @@ logs. To run the original map dataset locally, place an authorized copy of
 `Data FAT Full.xlsx` at `data/Data FAT Full.xlsx`; do not commit operational map
 data to a public repository.
 
-For Laragon virtual hosts or deployments, change `baseURL` in
-`app/Config/App.php` from the development-server URL to the URL where the
-application is installed.
+## Deploy to InfinityFree
+
+GitHub stores the source; GitHub Pages cannot run this PHP application. The
+`Deploy CodeIgniter to InfinityFree` workflow builds the Composer dependencies,
+runs the PHP tests, and uploads the production files to `/htdocs/` after a push
+to `main`.
+
+Before deploying:
+
+1. In the GitHub repository, open **Settings > Secrets and variables >
+   Actions** and add `FTP_USERNAME` and `FTP_PASSWORD` from the hosting panel.
+   Never put FTP credentials in a commit or share them in chat.
+2. The workflow uses plain FTP on port 21 because this host configuration uses
+   FTP. FTP does not encrypt credentials or files in transit. Use a dedicated
+   FTP password, rotate it if it was shared, and keep it only in GitHub
+   Actions Secrets.
+3. Create `/htdocs/.env` in the hosting File Manager (copy the shape of
+   `.env.example`) and set:
+
+   ```ini
+   CI_ENVIRONMENT = production
+   app.baseURL = 'https://fat.gt.tc/'
+   app.setupKey = 'REPLACE_WITH_A_PRIVATE_RANDOM_VALUE'
+   ```
+
+   Generate the setup key locally with
+   `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`. Do not commit or share
+   the resulting key. The setup page requires it to create the first admin.
+4. After a successful deployment, open `https://fat.gt.tc/setup`, enter the
+   setup key, and create the first admin account. The users table is created by
+   the application's migration. Remove the `app.setupKey` line from
+   `/htdocs/.env` after setup.
+5. Sign in at `https://fat.gt.tc/login` and upload an authorized copy of the
+   main FAT workbook from **Menu Admin > Upload Excel**. The SQLite database
+   and uploaded workbooks remain on the host and are excluded from deployments.
+
+The workflow skips its FTP step with a warning until both GitHub Actions
+secrets exist. Add them before deployment or rerun the workflow from the
+repository's **Actions** tab after adding them. It never runs a destructive
+clean-slate deploy. Confirm that the hosting PHP version is 8.2+ and has
+SQLite/PDO_SQLite enabled. PHP upload and execution limits may be lower than
+the application's 25 MB workbook limit.
+
+For Laragon virtual hosts or other deployments, set `app.baseURL` in `.env`;
+the default remains `http://localhost/webgis/`.
 
 ## Password storage
 

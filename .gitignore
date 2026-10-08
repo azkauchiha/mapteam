@@ -13,11 +13,17 @@
 *.bak*
 
 /writable/cache/*
+!/writable/cache/.gitkeep
 /writable/debugbar/*
+!/writable/debugbar/.gitkeep
 /writable/logs/*
+!/writable/logs/.gitkeep
 /writable/session/*
+!/writable/session/.gitkeep
 /writable/uploads/*
+!/writable/uploads/.gitkeep
 /writable/map_uploads/*
+!/writable/map_uploads/.gitkeep
 
 /deploy.ps1
 /inspect_xlsx.html
